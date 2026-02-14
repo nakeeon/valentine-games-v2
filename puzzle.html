@@ -48,7 +48,8 @@
 <body>
 <a class="home" href="index.html">🏠</a>
 <h1>🧩 Пазл «Серденько»</h1>
-<p class="info">Обери рівень складності:</p>
+<p class="info">1️⃣ Натисни на шматочок внизу → 2️⃣ Натисни на клітинку зверху</p>
+<p class="info">Обери рівень:</p>
 <div class="level-btns" id="levelBtns">
   <button class="level-btn active" onclick="setLevel(3)">Легко (3×3)</button>
   <button class="level-btn" onclick="setLevel(4)">Середньо (4×4)</button>
@@ -143,7 +144,7 @@ function startGame(){
   drawHeart(fullCanvas, fullSize);
   
   const cellSize=Math.floor(fullSize/gridSize);
-  const pieceDisplaySize=Math.floor(Math.min(70, 300/gridSize));
+  const pieceDisplaySize=Math.floor(Math.min(85, 340/gridSize));
   const gridDisplaySize=Math.min(340, window.innerWidth-40);
   
   // Grid
