@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💕 Знайди пару сердечок</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Comic Neue','Comic Sans MS',cursive;background:linear-gradient(135deg,#fff0f5,#ffe6f0,#fce4ec);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:10px}
+  h1{font-size:26px;color:#d63384;margin:8px 0}
+  .stats{display:flex;gap:20px;font-size:18px;color:#e84393;font-weight:700;margin:6px 0}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:340px;width:100%;margin:8px 0}
+  .card{aspect-ratio:1;background:linear-gradient(135deg,#ff6b9d,#e84393);border-radius:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.3s,background 0.3s;box-shadow:0 3px 10px rgba(232,67,147,0.2);-webkit-tap-highlight-color:transparent;user-select:none;position:relative;overflow:hidden}
+  .card:active{transform:scale(0.95)}
+  .card .front{display:none;font-size:36px}
+  .card .back{font-size:28px;color:white;animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+  .card.flipped{background:white;box-shadow:0 3px 15px rgba(214,51,132,0.25)}
+  .card.flipped .front{display:block;animation:flipIn 0.3s}
+  .card.flipped .back{display:none}
+  @keyframes flipIn{0%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
+  .card.matched{background:linear-gradient(135deg,#fff0f5,#fce4ec);border:3px solid #ff6b9d}
+  .card.matched .front{animation:matchBounce 0.5s}
+  @keyframes matchBounce{0%{transform:scale(1)}30%{transform:scale(1.3)}60%{transform:scale(0.9)}100%{transform:scale(1)}}
+  .result{display:none;text-align:center;margin:15px;animation:popIn 0.5s}
+  @keyframes popIn{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+  .result h2{font-size:28px;color:#d63384}
+  .result p{font-size:18px;color:#666;margin:6px}
+  .result .big{font-size:52px;margin:8px}
+  .btn{background:linear-gradient(135deg,#ff6b9d,#e84393);color:white;border:none;border-radius:30px;padding:12px 32px;font-size:18px;font-family:inherit;font-weight:700;cursor:pointer;margin:8px;box-shadow:0 3px 12px rgba(232,67,147,0.3)}
+  .btn:active{transform:scale(0.95)}
+  .home{position:fixed;top:10px;left:10px;text-decoration:none;font-size:28px;z-index:10}
+  .stars{font-size:20px;color:#ffd700;margin:5px 0}
+  .confetti{position:fixed;font-size:20px;animation:cfall 3s ease-out forwards;pointer-events:none;z-index:100}
+  @keyframes cfall{0%{opacity:1;transform:translateY(-20px) rotate(0)}100%{opacity:0;transform:translateY(100vh) rotate(720deg)}}
+</style>
+</head>
+<body>
+<a class="home" href="index.html">🏠</a>
+<h1>💕 Знайди пару!</h1>
+<div class="stats">
+  <span>Спроби: <span id="moves">0</span></span>
+  <span>Пари: <span id="pairs">0</span>/8</span>
+</div>
+<div class="grid" id="grid"></div>
+<div class="result" id="result">
+  <h2>💝 Усі пари знайдено!</h2>
+  <div class="big" id="rEmoji"></div>
+  <div class="stars" id="rStars"></div>
+  <p id="rText"></p>
+  <button class="btn" onclick="startGame()">🔄 Ще раз!</button>
+  <br><a class="btn" href="index.html" style="display:inline-block;text-decoration:none;background:linear-gradient(135deg,#aaa,#888)">🏠 Меню</a>
+</div>
+<script>
+const hearts=['💖','💕','💗','💓','❤️','💘','💝','🩷'];
+let flipped=[],matched=0,moves=0,locked=false;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function startGame(){
+  flipped=[];matched=0;moves=0;locked=false;
+  document.getElementById('moves').textContent='0';
+  document.getElementById('pairs').textContent='0';
+  document.getElementById('result').style.display='none';
+  const pairs=shuffle([...hearts,...hearts]);
+  const grid=document.getElementById('grid');grid.innerHTML='';
+  pairs.forEach((emoji,i)=>{
+    const c=document.createElement('div');c.className='card';c.dataset.emoji=emoji;c.dataset.idx=i;
+    c.innerHTML=`<span class="front">${emoji}</span><span class="back">💜</span>`;
+    c.onclick=()=>flip(c);grid.appendChild(c)
+  })
+}
+function flip(c){
+  if(locked||c.classList.contains('flipped')||c.classList.contains('matched'))return;
+  c.classList.add('flipped');flipped.push(c);
+  if(flipped.length===2){
+    locked=true;moves++;document.getElementById('moves').textContent=moves;
+    if(flipped[0].dataset.emoji===flipped[1].dataset.emoji){
+      flipped.forEach(x=>x.classList.add('matched'));matched++;
+      document.getElementById('pairs').textContent=matched;
+      flipped=[];locked=false;
+      if(matched===8)setTimeout(win,400)
+    }else{setTimeout(()=>{flipped.forEach(x=>x.classList.remove('flipped'));flipped=[];locked=false},900)}
+  }
+}
+function win(){
+  const r=document.getElementById('result');r.style.display='block';
+  let emoji,stars,msg;
+  if(moves<=12){emoji='🏆👑';stars='⭐⭐⭐⭐⭐';msg='Неймовірна пам\'ять! Ти геній!'}
+  else if(moves<=16){emoji='🌟💖';stars='⭐⭐⭐⭐';msg='Чудово! Дуже гарний результат!'}
+  else if(moves<=22){emoji='😊👏';stars='⭐⭐⭐';msg='Молодець! Ти добре впорався!'}
+  else if(moves<=30){emoji='💪😊';stars='⭐⭐';msg='Непогано! Спробуй ще — буде краще!'}
+  else{emoji='📚💪';stars='⭐';msg='Тренуй пам\'ять — у тебе вийде!'}
+  document.getElementById('rEmoji').textContent=emoji;
+  document.getElementById('rStars').textContent=stars;
+  document.getElementById('rText').textContent=msg+' Спроб: '+moves;
+  const es=['💖','💕','✨','🎉','🌟','❤️'];
+  for(let i=0;i<30;i++)setTimeout(()=>{const d=document.createElement('div');d.className='confetti';d.textContent=es[Math.floor(Math.random()*es.length)];d.style.left=Math.random()*100+'vw';d.style.animationDuration=(2+Math.random()*2)+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),4000)},i*60)
+}
+startGame()
+</script>
+</body>
+</html>

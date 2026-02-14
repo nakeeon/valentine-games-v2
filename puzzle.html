@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧩 Пазл «Серденько»</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Comic Neue','Comic Sans MS',cursive;background:linear-gradient(135deg,#ffe6f0,#fff0f5,#ffe6e6);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:10px;-webkit-tap-highlight-color:transparent}
+  h1{font-size:26px;color:#d63384;margin:8px 0}
+  .home{position:fixed;top:10px;left:10px;text-decoration:none;font-size:28px;z-index:10}
+  .info{font-size:16px;color:#888;margin:4px 0}
+  .timer{font-size:20px;color:#e84393;font-weight:700;margin:4px}
+  
+  .puzzle-container{position:relative;margin:10px auto}
+  
+  .target-grid{display:grid;gap:3px;background:rgba(214,51,132,0.1);border-radius:16px;padding:6px;border:3px dashed #f0a0c0}
+  .target-cell{background:rgba(255,255,255,0.5);border-radius:8px;display:flex;align-items:center;justify-content:center;border:2px dashed #f0c0d0;transition:all 0.2s;aspect-ratio:1}
+  .target-cell.filled{border-color:#d63384;background:white;border-style:solid}
+  .target-cell.hover{background:rgba(214,51,132,0.15);border-color:#d63384}
+  .target-cell img{width:100%;height:100%;object-fit:cover;border-radius:6px;animation:placeIn 0.3s}
+  @keyframes placeIn{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+  
+  .pieces-area{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:12px auto;padding:10px;background:rgba(255,255,255,0.6);border-radius:16px;max-width:380px}
+  .piece{border-radius:10px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 2px 8px rgba(214,51,132,0.2);border:3px solid transparent;aspect-ratio:1}
+  .piece:active{transform:scale(0.9)}
+  .piece.selected{border-color:#d63384;box-shadow:0 0 12px rgba(214,51,132,0.5);transform:scale(1.05)}
+  .piece.placed{opacity:0.2;pointer-events:none;transform:scale(0.8)}
+  .piece canvas{width:100%;height:100%;border-radius:7px}
+  
+  .result{display:none;text-align:center;margin:15px;animation:popIn 0.5s}
+  @keyframes popIn{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+  .result h2{font-size:28px;color:#d63384}
+  .result .big{font-size:48px;margin:8px}
+  .result p{font-size:18px;color:#666;margin:6px}
+  .stars{font-size:22px;color:#ffd700;margin:5px}
+  .btn{background:linear-gradient(135deg,#ff6b9d,#e84393);color:white;border:none;border-radius:30px;padding:12px 32px;font-size:18px;font-family:inherit;font-weight:700;cursor:pointer;margin:8px;box-shadow:0 3px 12px rgba(232,67,147,0.3)}
+  .btn:active{transform:scale(0.95)}
+  .btn-home{background:linear-gradient(135deg,#aaa,#888);text-decoration:none;display:inline-block}
+  .level-btns{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;justify-content:center}
+  .level-btn{padding:10px 18px;border-radius:14px;border:3px solid #f0c0d0;background:white;font-size:16px;font-family:inherit;font-weight:700;color:#d63384;cursor:pointer}
+  .level-btn.active{background:#d63384;color:white;border-color:#d63384}
+  .confetti{position:fixed;font-size:20px;animation:cfall 3s ease-out forwards;pointer-events:none;z-index:100}
+  @keyframes cfall{0%{opacity:1;transform:translateY(-20px) rotate(0)}100%{opacity:0;transform:translateY(100vh) rotate(720deg)}}
+</style>
+</head>
+<body>
+<a class="home" href="index.html">🏠</a>
+<h1>🧩 Пазл «Серденько»</h1>
+<p class="info">Обери рівень складності:</p>
+<div class="level-btns" id="levelBtns">
+  <button class="level-btn active" onclick="setLevel(3)">Легко (3×3)</button>
+  <button class="level-btn" onclick="setLevel(4)">Середньо (4×4)</button>
+  <button class="level-btn" onclick="setLevel(5)">Складно (5×5)</button>
+</div>
+<p class="timer">⏱️ <span id="time">0</span> сек | Залишилось: <span id="remain">9</span></p>
+
+<div class="puzzle-container" id="puzzleContainer">
+  <div class="target-grid" id="targetGrid"></div>
+</div>
+<div class="pieces-area" id="piecesArea"></div>
+
+<div class="result" id="result">
+  <h2>💝 Пазл складено!</h2>
+  <div class="big" id="rEmoji"></div>
+  <div class="stars" id="rStars"></div>
+  <p id="rText"></p>
+  <button class="btn" onclick="startGame()">🔄 Ще раз!</button>
+  <br><a class="btn btn-home" href="index.html">🏠 Меню</a>
+</div>
+
+<script>
+let gridSize=3, selected=null, placed=0, total=0, seconds=0, timer=null;
+
+// Draw heart image
+function drawHeart(canvas, size) {
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  
+  // Background gradient
+  const bg = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size*0.7);
+  bg.addColorStop(0, '#ffb6c1'); bg.addColorStop(0.5, '#ff69b4'); bg.addColorStop(1, '#ff1493');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, size, size);
+  
+  // Draw decorative elements
+  const colors = ['#fff','#ffe0ec','#ffd700','#ff6b9d','#ff1493'];
+  for(let i=0; i<30; i++){
+    ctx.beginPath();
+    ctx.arc(Math.random()*size, Math.random()*size, 2+Math.random()*8, 0, Math.PI*2);
+    ctx.fillStyle = colors[Math.floor(Math.random()*colors.length)];
+    ctx.globalAlpha = 0.3+Math.random()*0.4;
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  
+  // Heart shape
+  const cx=size/2, cy=size*0.42, s=size*0.35;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy+s*0.7);
+  ctx.bezierCurveTo(cx-s*1.5, cy-s*0.3, cx-s*0.8, cy-s*1.2, cx, cy-s*0.4);
+  ctx.bezierCurveTo(cx+s*0.8, cy-s*1.2, cx+s*1.5, cy-s*0.3, cx, cy+s*0.7);
+  const hg = ctx.createRadialGradient(cx-s*0.2, cy-s*0.2, 0, cx, cy, s);
+  hg.addColorStop(0, '#ff4081'); hg.addColorStop(0.6, '#e91e63'); hg.addColorStop(1, '#c2185b');
+  ctx.fillStyle = hg; ctx.fill();
+  ctx.strokeStyle = '#ad1457'; ctx.lineWidth = 2; ctx.stroke();
+  
+  // Shine
+  ctx.beginPath();
+  ctx.ellipse(cx-s*0.25, cy-s*0.35, s*0.15, s*0.1, -0.4, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fill();
+  
+  // Sparkles
+  const sparkles = [[0.25,0.2],[0.75,0.15],[0.15,0.6],[0.85,0.55],[0.5,0.8],[0.3,0.85],[0.7,0.82]];
+  sparkles.forEach(([sx,sy])=>{
+    const x=sx*size, y=sy*size, r=3+Math.random()*4;
+    ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r*0.3,y-r*0.3);ctx.lineTo(x+r,y);
+    ctx.lineTo(x+r*0.3,y+r*0.3);ctx.lineTo(x,y+r);ctx.lineTo(x-r*0.3,y+r*0.3);
+    ctx.lineTo(x-r,y);ctx.lineTo(x-r*0.3,y-r*0.3);ctx.closePath();
+    ctx.fillStyle='rgba(255,215,0,0.8)';ctx.fill();
+  });
+  
+  return canvas;
+}
+
+function setLevel(n){
+  gridSize=n;
+  document.querySelectorAll('.level-btn').forEach((b,i)=>b.classList.toggle('active',[3,4,5][i]===n));
+  startGame();
+}
+
+function startGame(){
+  placed=0; total=gridSize*gridSize; seconds=0; selected=null;
+  document.getElementById('time').textContent='0';
+  document.getElementById('remain').textContent=total;
+  document.getElementById('result').style.display='none';
+  if(timer)clearInterval(timer);
+  timer=setInterval(()=>{seconds++;document.getElementById('time').textContent=seconds},1000);
+  
+  // Create full image
+  const fullSize=300;
+  const fullCanvas=document.createElement('canvas');
+  drawHeart(fullCanvas, fullSize);
+  
+  const cellSize=Math.floor(fullSize/gridSize);
+  const pieceDisplaySize=Math.floor(Math.min(70, 300/gridSize));
+  const gridDisplaySize=Math.min(340, window.innerWidth-40);
+  
+  // Grid
+  const grid=document.getElementById('targetGrid');
+  grid.innerHTML='';
+  grid.style.gridTemplateColumns=`repeat(${gridSize},1fr)`;
+  grid.style.width=gridDisplaySize+'px';
+  
+  for(let i=0;i<total;i++){
+    const cell=document.createElement('div');
+    cell.className='target-cell';
+    cell.dataset.idx=i;
+    cell.onclick=()=>placeInCell(cell,i);
+    grid.appendChild(cell);
+  }
+  
+  // Cut pieces
+  const pieces=[];
+  for(let row=0;row<gridSize;row++){
+    for(let col=0;col<gridSize;col++){
+      const idx=row*gridSize+col;
+      const pc=document.createElement('canvas');
+      pc.width=cellSize;pc.height=cellSize;
+      const pctx=pc.getContext('2d');
+      pctx.drawImage(fullCanvas, col*cellSize, row*cellSize, cellSize, cellSize, 0, 0, cellSize, cellSize);
+      pieces.push({idx, canvas:pc});
+    }
+  }
+  
+  // Shuffle
+  for(let i=pieces.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pieces[i],pieces[j]]=[pieces[j],pieces[i]]}
+  
+  const area=document.getElementById('piecesArea');area.innerHTML='';
+  pieces.forEach(p=>{
+    const wrap=document.createElement('div');
+    wrap.className='piece';
+    wrap.style.width=pieceDisplaySize+'px';
+    wrap.dataset.idx=p.idx;
+    wrap.appendChild(p.canvas);
+    wrap.onclick=()=>selectPiece(wrap);
+    area.appendChild(wrap);
+  });
+}
+
+function selectPiece(wrap){
+  if(wrap.classList.contains('placed'))return;
+  document.querySelectorAll('.piece').forEach(p=>p.classList.remove('selected'));
+  wrap.classList.add('selected');
+  selected=wrap;
+}
+
+function placeInCell(cell,cellIdx){
+  if(!selected||cell.classList.contains('filled'))return;
+  const pieceIdx=parseInt(selected.dataset.idx);
+  if(pieceIdx===cellIdx){
+    // Correct!
+    const img=selected.querySelector('canvas');
+    const clone=document.createElement('canvas');
+    clone.width=img.width;clone.height=img.height;
+    clone.getContext('2d').drawImage(img,0,0);
+    clone.style.width='100%';clone.style.height='100%';clone.style.borderRadius='6px';
+    cell.appendChild(clone);
+    cell.classList.add('filled');
+    selected.classList.add('placed');
+    selected=null;
+    placed++;
+    document.getElementById('remain').textContent=total-placed;
+    if(placed===total)win();
+  }else{
+    cell.style.background='rgba(255,100,100,0.2)';
+    setTimeout(()=>cell.style.background='',300);
+  }
+}
+
+function win(){
+  clearInterval(timer);
+  const r=document.getElementById('result');r.style.display='block';
+  let emoji,stars,msg;
+  const fast=gridSize===3?15:gridSize===4?30:50;
+  const mid=gridSize===3?30:gridSize===4?60:90;
+  if(seconds<=fast){emoji='🏆✨';stars='⭐⭐⭐⭐⭐';msg=`Блискавично! ${seconds} сек!`}
+  else if(seconds<=mid){emoji='🌟💖';stars='⭐⭐⭐⭐';msg=`Чудово! ${seconds} сек!`}
+  else{emoji='😊👏';stars='⭐⭐⭐';msg=`Молодець! ${seconds} сек! Спробуй швидше!`}
+  document.getElementById('rEmoji').textContent=emoji;
+  document.getElementById('rStars').textContent=stars;
+  document.getElementById('rText').textContent=msg;
+  const es=['💖','💕','✨','🎉','🌟','❤️','🧩'];
+  for(let i=0;i<30;i++)setTimeout(()=>{const d=document.createElement('div');d.className='confetti';d.textContent=es[Math.floor(Math.random()*es.length)];d.style.left=Math.random()*100+'vw';d.style.animationDuration=(2+Math.random()*2)+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),4000)},i*60);
+}
+
+startGame();
+</script>
+</body>
+</html>
